@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 240 240">
+  <!-- Иконка приложения: квадратные очки + «СПОРТ». Фон квадратный — углы iOS скруглит сама. -->
+  <rect width="240" height="240" fill="#000000"/>
+  <rect x="32" y="54" width="70" height="70" rx="6" fill="none" stroke="#ffffff" stroke-width="10"/>
+  <rect x="138" y="54" width="70" height="70" rx="6" fill="none" stroke="#ffffff" stroke-width="10"/>
+  <path d="M102 80 Q120 70 138 80" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+  <path d="M32 68 L21 66 M208 68 L219 66" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="41" cy="63" r="3" fill="#000000"/>
+  <circle cx="199" cy="63" r="3" fill="#000000"/>
+  <circle cx="67" cy="89" r="10" fill="#ffffff"/>
+  <circle cx="173" cy="89" r="10" fill="#ffffff"/>
+  <text x="121.5" y="189" text-anchor="middle" fill="#ffffff"
+        font-family="-apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif"
+        font-size="40" font-weight="800" letter-spacing="3">СПОРТ</text>
+</svg>

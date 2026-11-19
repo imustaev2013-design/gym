@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Макет главного экрана — вариант «Сводка»</title>
+<!--
+  РЕФЕРЕНС ДИЗАЙНА для главного экрана (iPhone 13, 390×844).
+  Статичный макет: данные условные. Повторить внешний вид и поведение:
+  - Шапка: дата + сколько идёт тренировка; крупно «A1 · Грудь ▾» (переключатель дня);
+    полоса из 3 цифр: недель подряд / всего тренировок / рекордов за месяц.
+  - Раскрыто только ТЕКУЩЕЕ упражнение (чёрная линия сверху). Остальные — свёрнутые строки:
+    название / «вес × повторы · N подходов», справа точки подходов (заполненная = сделан).
+  - Под названием текущего: подсказка из автопрогрессии («Прошлый раз было легко — сегодня +2,5 кг»).
+  - Сделанный подход — серый текст + чёрный круг с галочкой.
+  - Тап по цифрам подхода (подчёркнуты пунктиром) → под подходом раскрываются два степпера:
+    «− вес +» (шаг = шаг упражнения из plan.json) и «− повторы +» (шаг 1).
+    Активный степпер — чёрная рамка. Тап по числу в степпере — ручной ввод (inputmode="decimal").
+  - «+ подход» добавляет подход (копия предыдущего), «− подход» удаляет последний несделанный.
+  - Кнопки Легко / Норм / Тяжело и «+ заметка» появляются только после последнего подхода упражнения,
+    после выбора статуса текущим становится следующее упражнение (оно раскрывается, предыдущее сворачивается).
+  - Тап по свёрнутому упражнению — раскрыть его вручную.
+  - Тёмная тема — те же элементы с инверсией: фон #000, текст #fff, линии #333, вторичный текст #a0a0a0.
+  - Цвета светлой темы: фон #fff, текст #000, вторичный #6b6b6b, сделанное #9a9a9a, линии #e2e2e2.
+  - Шрифт: -apple-system (SF Pro). Все зоны нажатия ≥ 44px.
+-->
+<style>body{margin:0;display:flex;justify-content:center;background:#f2f2f2}button{cursor:pointer}</style>
+</head>
+<body>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 56px 24px 34px; display: flex; flex-direction: column; background: #ffffff; color: #000000; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif">
+  <div style="display: flex; justify-content: space-between; align-items: center; height: 44px">
+    <span style="font-size: 15px; color: #6b6b6b">Пятница, 20 ноября · идёт 12 мин</span>
+    <button aria-label="Меню" style="width: 44px; height: 44px; border: 0; background: none; display: flex; align-items: center; justify-content: flex-end; padding: 0">
+      <svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><path d="M0 1h22M0 13h22" stroke="#000" stroke-width="1.8"></path></svg>
+    </button>
+  </div>
+  <button style="margin-top: 6px; align-self: flex-start; padding: 0; border: 0; background: none; font: inherit; font-size: 32px; font-weight: 700; letter-spacing: -0.5px; color: #000">A1 · Грудь ▾</button>
+
+  <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #e2e2e2; border-bottom: 1px solid #e2e2e2">
+    <div style="padding: 10px 0">
+      <div style="font-size: 22px; font-weight: 700">5</div>
+      <div style="font-size: 13px; color: #6b6b6b">недель подряд</div>
+    </div>
+    <div style="padding: 10px 0 10px 14px; border-left: 1px solid #e2e2e2">
+      <div style="font-size: 22px; font-weight: 700">14</div>
+      <div style="font-size: 13px; color: #6b6b6b">тренировок</div>
+    </div>
+    <div style="padding: 10px 0 10px 14px; border-left: 1px solid #e2e2e2">
+      <div style="font-size: 22px; font-weight: 700">4</div>
+      <div style="font-size: 13px; color: #6b6b6b">рекорда за месяц</div>
+    </div>
+  </div>
+
+  <div style="margin-top: 18px; display: flex; flex-direction: column">
+    <div style="padding: 12px 0 8px; border-top: 1px solid #000">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <span style="font-size: 17px; font-weight: 600">Жим штанги лёжа</span>
+        <span style="font-size: 13px; color: #6b6b6b">1 / 3</span>
+      </div>
+      <div style="margin-top: 2px; font-size: 13px; color: #6b6b6b">Прошлый раз было легко — сегодня +2,5 кг</div>
+
+      <div style="display: flex; flex-direction: column; margin-top: 4px">
+        <div style="height: 50px; display: flex; align-items: center; gap: 10px">
+          <span style="width: 14px; font-size: 13px; color: #6b6b6b">1</span>
+          <span style="flex: 1; font-size: 20px; font-weight: 600; color: #9a9a9a">52,5 <span style="font-size: 13px; font-weight: 400">кг</span> × 5</span>
+          <button aria-label="Подход 1 выполнен" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: #000; display: flex; align-items: center; justify-content: center; padding: 0"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5 8.2 14.5 16 6" stroke="#fff" stroke-width="2.2" fill="none"></path></svg></button>
+        </div>
+
+        <div style="padding: 6px 0 10px; display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span style="width: 14px; font-size: 13px; color: #6b6b6b">2</span>
+            <span style="flex: 1; font-size: 13px; color: #6b6b6b">Меняю подход</span>
+            <button aria-label="Отметить подход 2" style="width: 44px; height: 44px; border-radius: 22px; border: 2px solid #000; background: #fff; padding: 0"></button>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+            <div style="height: 48px; display: flex; align-items: center; justify-content: space-between; border: 1.5px solid #000; border-radius: 12px">
+              <button aria-label="Минус 2,5 кг" style="width: 44px; height: 44px; border: 0; background: none; font: inherit; font-size: 22px; color: #000">−</button>
+              <span style="font-size: 20px; font-weight: 600">55 <span style="font-size: 13px; font-weight: 400; color: #6b6b6b">кг</span></span>
+              <button aria-label="Плюс 2,5 кг" style="width: 44px; height: 44px; border: 0; background: none; font: inherit; font-size: 22px; color: #000">+</button>
+            </div>
+            <div style="height: 48px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #d0d0d0; border-radius: 12px">
+              <button aria-label="Минус повтор" style="width: 44px; height: 44px; border: 0; background: none; font: inherit; font-size: 22px; color: #000">−</button>
+              <span style="font-size: 20px; font-weight: 600">4 <span style="font-size: 13px; font-weight: 400; color: #6b6b6b">повт.</span></span>
+              <button aria-label="Плюс повтор" style="width: 44px; height: 44px; border: 0; background: none; font: inherit; font-size: 22px; color: #000">+</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="height: 50px; display: flex; align-items: center; gap: 10px">
+          <span style="width: 14px; font-size: 13px; color: #6b6b6b">3</span>
+          <button style="flex: 1; text-align: left; padding: 0; border: 0; background: none; font: inherit; color: #000; font-size: 20px; font-weight: 600"><span style="border-bottom: 1px dashed #9a9a9a">52,5</span> <span style="font-size: 13px; font-weight: 400; color: #6b6b6b">кг</span> × <span style="border-bottom: 1px dashed #9a9a9a">5</span></button>
+          <button aria-label="Отметить подход 3" style="width: 44px; height: 44px; border-radius: 22px; border: 2px solid #000; background: #fff; padding: 0"></button>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 20px; align-items: center">
+        <button style="height: 44px; padding: 0; border: 0; background: none; font: inherit; font-size: 15px; color: #000">+ подход</button>
+        <button style="height: 44px; padding: 0; border: 0; background: none; font: inherit; font-size: 15px; color: #6b6b6b">− подход</button>
+      </div>
+    </div>
+
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #e2e2e2">
+      <div><div style="font-size: 17px">Присед со штангой</div><div style="font-size: 13px; color: #6b6b6b">60 × 5 · 2 подхода</div></div>
+      <div style="display: flex; gap: 5px"><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span></div>
+    </div>
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #e2e2e2">
+      <div><div style="font-size: 17px">Подтягивания</div><div style="font-size: 13px; color: #6b6b6b">свой вес × 6 · 3 подхода</div></div>
+      <div style="display: flex; gap: 5px"><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span></div>
+    </div>
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #e2e2e2">
+      <div><div style="font-size: 17px">Жим гантелей сидя</div><div style="font-size: 13px; color: #6b6b6b">16 × 6 · 2 подхода</div></div>
+      <div style="display: flex; gap: 5px"><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span></div>
+    </div>
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #e2e2e2">
+      <div><div style="font-size: 17px">Трицепс с канатом</div><div style="font-size: 13px; color: #6b6b6b">25 × 8 · 2 подхода</div></div>
+      <div style="display: flex; gap: 5px"><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span></div>
+    </div>
+    <div style="height: 52px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #e2e2e2; border-bottom: 1px solid #e2e2e2">
+      <div><div style="font-size: 17px">Бицепс со штангой</div><div style="font-size: 13px; color: #6b6b6b">30 × 6 · 2 подхода</div></div>
+      <div style="display: flex; gap: 5px"><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span><span style="width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid #000"></span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

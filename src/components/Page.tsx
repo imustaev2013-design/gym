@@ -1,11 +1,14 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
+import { useSwipeBack } from '../useSwipeBack'
 
 export type PageId = 'history' | 'progress' | 'achievements' | 'settings' | 'weight' | 'photos' | 'backup'
 
-/** Полноэкранный раздел поверх основного экрана */
+/** Полноэкранный слой поверх предыдущего. Назад — кнопкой или свайпом от левого края. */
 export default function Page({ title, onBack, children }: { title: string; onBack: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useSwipeBack(ref, onBack)
   return (
-    <div className="page">
+    <div className="page" ref={ref}>
       <header className="page-top">
         <button className="back" onClick={onBack}>
           ‹ Назад

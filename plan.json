@@ -5,6 +5,7 @@
     {
       "id": "A1",
       "title": "акцент на грудь",
+      "short": "Грудь",
       "exercises": [
         {"id": "bench", "name": "Жим штанги лёжа", "variant": "тяжёлый", "sets": 3, "reps": [5, 6], "type": "barbell", "step": 2.5},
         {"id": "squat", "name": "Присед со штангой", "variant": "умеренный", "sets": 2, "reps": [5, 6], "type": "barbell", "step": 2.5},
@@ -17,6 +18,7 @@
     {
       "id": "B1",
       "title": "классическая становая",
+      "short": "Становая",
       "exercises": [
         {"id": "deadlift", "name": "Классическая становая тяга", "sets": 2, "reps": [4, 5], "type": "barbell", "step": 2.5},
         {"id": "incline_bench", "name": "Жим штанги на наклонной скамье", "sets": 2, "reps": [6, 8], "type": "barbell", "step": 2.5},
@@ -28,6 +30,7 @@
     {
       "id": "A2",
       "title": "акцент на ноги",
+      "short": "Ноги",
       "exercises": [
         {"id": "squat", "name": "Присед со штангой", "variant": "тяжёлый", "sets": 3, "reps": [5, 6], "type": "barbell", "step": 2.5},
         {"id": "db_bench", "name": "Жим гантелей лёжа", "sets": 2, "reps": [6, 10], "type": "dumbbell", "step": 1},
@@ -40,6 +43,7 @@
     {
       "id": "B2",
       "title": "румынская становая",
+      "short": "Румынская",
       "exercises": [
         {"id": "rdl", "name": "Румынская становая тяга", "sets": 2, "reps": [6, 8], "type": "barbell", "step": 2.5},
         {"id": "incline_db", "name": "Жим гантелей на наклонной скамье", "sets": 2, "reps": [8, 10], "type": "dumbbell", "step": 1},

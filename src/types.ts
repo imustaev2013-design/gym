@@ -13,6 +13,8 @@ export interface PlanExercise {
 export interface PlanDay {
   id: string
   title: string
+  /** короткое название для шапки: «A1 · Грудь» */
+  short?: string
   exercises: PlanExercise[]
 }
 export interface Plan {

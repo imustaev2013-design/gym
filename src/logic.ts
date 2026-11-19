@@ -93,27 +93,28 @@ export function nextTarget(ex: PlanExercise, prev?: ExLog): { weight: number | n
 }
 
 /**
- * Предзаполнение по последней тренировке с этим упражнением.
- * Вес и повторы переносятся между днями только для полностью одинаковых упражнений
- * (тот же id, вариант и диапазон повторов). Тяжёлый и умеренный варианты не смешиваются.
+ * Последняя прошлая запись по упражнению, из которой берутся вес и повторы.
+ * Переносится только между полностью одинаковыми упражнениями (тот же id, вариант и диапазон повторов):
+ * тяжёлый и умеренный варианты не смешиваются.
  */
-export function buildDraft(dayId: string, workouts: Workout[]): Workout {
-  const day = dayById(dayId)
-  const past = workouts
+export function findPrev(ex: PlanExercise, workouts: Workout[]): ExLog | undefined {
+  return workouts
     .filter((w) => w.date !== dateStr())
     .sort((a, b) => (a.date === b.date ? (a.startedAt ?? 0) - (b.startedAt ?? 0) : a.date < b.date ? -1 : 1))
+    .filter((w) => {
+      const o = dayById(w.dayId).exercises.find((e) => e.id === ex.id)
+      return !!o && o.variant === ex.variant && o.reps[0] === ex.reps[0] && o.reps[1] === ex.reps[1]
+    })
+    .map((w) => w.exercises.find((e) => e.exId === ex.id))
+    .filter((e): e is ExLog => !!e && !e.skipped && e.sets.some((s) => s.done))
+    .at(-1)
+}
 
+/** Предзаполнение по прошлой тренировке с тем же упражнением */
+export function buildDraft(dayId: string, workouts: Workout[]): Workout {
+  const day = dayById(dayId)
   const exercises: ExLog[] = day.exercises.map((ex) => {
-    const pl = past
-      // переносим только если упражнение в том дне полностью такое же: id, вариант и диапазон повторов
-      .filter((w) => {
-        const o = dayById(w.dayId).exercises.find((e) => e.id === ex.id)
-        return !!o && o.variant === ex.variant && o.reps[0] === ex.reps[0] && o.reps[1] === ex.reps[1]
-      })
-      .map((w) => w.exercises.find((e) => e.exId === ex.id))
-      .filter((e): e is ExLog => !!e && !e.skipped && e.sets.some((s) => s.done))
-      .at(-1)
-    const t = nextTarget(ex, pl)
+    const t = nextTarget(ex, findPrev(ex, workouts))
     return {
       exId: ex.id,
       skipped: false,
@@ -121,6 +122,32 @@ export function buildDraft(dayId: string, workouts: Workout[]): Workout {
     }
   })
   return { date: dateStr(), dayId, exercises }
+}
+
+const plural = (n: number, one: string, few: string, many: string) => {
+  const m10 = n % 10
+  const m100 = n % 100
+  return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many
+}
+export { plural }
+
+/** «Прошлый раз было легко — сегодня +2,5 кг» */
+export function progressHint(ex: PlanExercise, prev?: ExLog): string | null {
+  const done = prev?.sets.filter((s) => s.done) ?? []
+  if (!prev || !done.length || !prev.status) return null
+  const bw = ex.type === 'bodyweight'
+  const t = nextTarget(ex, prev)
+  const w0 = parseNum(done.at(-1)!.weight) ?? (bw ? 0 : null)
+  const r0 = Math.min(Math.max(Math.min(...done.map((s) => s.reps ?? ex.reps[0])), ex.reps[0]), ex.reps[1])
+  const dw = t.weight != null && w0 != null ? round2(t.weight - w0) : 0
+  const dr = t.reps - r0
+  const how = { easy: 'легко', normal: 'нормально', hard: 'тяжело' }[prev.status]
+  let change = 'то же самое'
+  if (dw > 0) change = `+${fmt(dw)} кг`
+  else if (dw < 0) change = `−${fmt(-dw)} кг`
+  else if (dr > 0) change = `+${dr} ${plural(dr, 'повтор', 'повтора', 'повторов')}`
+  else if (dr < 0) change = `−${-dr} ${plural(-dr, 'повтор', 'повтора', 'повторов')}`
+  return `Прошлый раз было ${how} — сегодня ${change}`
 }
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100).replace('.', ',')
@@ -172,7 +199,7 @@ export function durationLabel(w: Workout): string | null {
   return m < 1 ? '<1 мин' : `${m} мин`
 }
 
-function shiftDate(ds: string, n: number): string {
+export function shiftDate(ds: string, n: number): string {
   const [y, m, d] = ds.split('-').map(Number)
   return dateStr(new Date(y, m - 1, d + n))
 }
@@ -199,4 +226,22 @@ export function missedDays(workouts: Workout[]): { date: string; dayId: string }
     }
   }
   return out
+}
+
+const mondayOf = (ds: string) => {
+  const [y, m, d] = ds.split('-').map(Number)
+  return shiftDate(ds, -((new Date(y, m - 1, d).getDay() + 6) % 7))
+}
+
+/** Недель подряд с хотя бы одной тренировкой (если на этой неделе ещё не было — считаем от прошлой) */
+export function weekStreak(workouts: Workout[]): number {
+  const weeks = new Set(workouts.filter(hasDone).map((w) => mondayOf(w.date)))
+  let cur = mondayOf(dateStr())
+  if (!weeks.has(cur)) cur = shiftDate(cur, -7)
+  let n = 0
+  while (weeks.has(cur)) {
+    n++
+    cur = shiftDate(cur, -7)
+  }
+  return n
 }

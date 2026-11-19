@@ -2,7 +2,9 @@
   --bg: #fff;
   --fg: #000;
   --mid: #6b6b6b;
-  --line: #d9d9d9;
+  --line: #e2e2e2;
+  --line2: #d0d0d0;
+  --done: #9a9a9a;
   --fill: #f2f2f2;
   color-scheme: light dark;
 }
@@ -10,16 +12,20 @@
   :root:not([data-theme='light']) {
     --bg: #000;
     --fg: #fff;
-    --mid: #9a9a9a;
-    --line: #2e2e2e;
+    --mid: #a0a0a0;
+    --line: #333;
+    --line2: #444;
+    --done: #707070;
     --fill: #141414;
   }
 }
 :root[data-theme='dark'] {
   --bg: #000;
   --fg: #fff;
-  --mid: #9a9a9a;
-  --line: #2e2e2e;
+  --mid: #a0a0a0;
+  --line: #333;
+  --line2: #444;
+  --done: #707070;
   --fill: #141414;
 }
 
@@ -386,6 +392,7 @@ input {
   position: fixed;
   inset: 0;
   z-index: 5;
+  will-change: transform;
   background: var(--bg);
   display: flex;
   flex-direction: column;
@@ -710,4 +717,293 @@ input {
   background: var(--fg);
   color: var(--bg);
   font-size: 14px;
+}
+
+.page.dragging {
+  border-left: 1px solid var(--line);
+}
+.app {
+  overflow: hidden;
+  position: relative;
+}
+
+/* ---------- главный экран по макету (iPhone 13, 390×844) ---------- */
+.m-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: calc(env(safe-area-inset-top) + 12px) 24px calc(env(safe-area-inset-bottom) + 16px);
+}
+html[data-size='s'] .m-zoom {
+  zoom: 0.9;
+}
+html[data-size='l'] .m-zoom {
+  zoom: 1.12;
+}
+.m-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 44px;
+}
+.m-date {
+  font-size: 15px;
+  color: var(--mid);
+}
+.m-menu {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+.m-title {
+  display: block;
+  margin-top: 6px;
+  padding: 3px 0;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  text-align: left;
+}
+.m-stats {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.m-stats > div {
+  padding: 10px 0;
+}
+.m-stats > div + div {
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+.m-stats .m-n {
+  font-size: 22px;
+  font-weight: 700;
+}
+.m-stats .m-l {
+  font-size: 13px;
+  color: var(--mid);
+}
+.m-list {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+}
+.m-list > :last-child {
+  border-bottom: 1px solid var(--line);
+}
+.m-cur {
+  padding: 12px 0 8px;
+  border-top: 1px solid var(--fg);
+}
+.m-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.m-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+.m-name.skipped {
+  text-decoration: line-through;
+  color: var(--mid);
+}
+.m-variant {
+  font-weight: 400;
+  color: var(--mid);
+}
+.m-count {
+  font-size: 13px;
+  color: var(--mid);
+  white-space: nowrap;
+}
+.m-hint {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--mid);
+}
+.m-sets {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.m-set {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.m-idx {
+  width: 14px;
+  font-size: 13px;
+  color: var(--mid);
+}
+.m-val {
+  flex: 1;
+  text-align: left;
+  font-size: 20px;
+  font-weight: 600;
+}
+.m-val button {
+  font-weight: inherit;
+  font-size: inherit;
+  /* невидимо расширяем зону нажатия до ≥44px, не сдвигая вёрстку */
+  padding: 12px 6px;
+  margin: -12px -6px;
+}
+.m-val .tap {
+  border-bottom: 1px dashed var(--done);
+}
+.m-val small {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--mid);
+}
+.m-set.done .m-val,
+.m-set.done .m-val small {
+  color: var(--done);
+}
+.m-label {
+  flex: 1;
+  font-size: 13px;
+  color: var(--mid);
+}
+.m-check {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  border: 2px solid var(--fg);
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.m-check.on {
+  background: var(--fg);
+  border-color: var(--fg);
+}
+.m-edit {
+  padding: 6px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.m-edit .m-set {
+  height: auto;
+}
+.m-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.m-step {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+}
+.m-step.active {
+  border: 1.5px solid var(--fg);
+}
+.m-step > button {
+  width: 44px;
+  height: 44px;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+.m-step .v {
+  flex: 1;
+  width: auto;
+  font-size: 20px;
+  font-weight: 600;
+}
+.m-step .v small {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--mid);
+}
+.m-step input {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 600;
+}
+.m-add {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.m-add button {
+  height: 44px;
+  font-size: 15px;
+}
+.m-add .gray {
+  color: var(--mid);
+}
+.m-add .gray:disabled {
+  opacity: 0.4;
+}
+.m-add .right {
+  margin-left: auto;
+}
+.m-coll {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  border-top: 1px solid var(--line);
+}
+.m-coll .t {
+  display: block;
+  font-size: 17px;
+}
+.m-coll .s {
+  display: block;
+  font-size: 13px;
+  color: var(--mid);
+}
+.m-coll.skipped .t {
+  text-decoration: line-through;
+  color: var(--mid);
+}
+.m-dots {
+  display: flex;
+  gap: 5px;
+}
+.m-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  border: 1.5px solid var(--fg);
+}
+.m-dot.on {
+  background: var(--fg);
+}
+.m-link {
+  display: block;
+  min-height: 44px;
+  font-size: 15px;
+  color: var(--mid);
+}
+.m-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--mid);
+}
+.m-foot {
+  margin-top: 8px;
+}
+.m-scroll .rest {
+  min-height: 300px;
 }

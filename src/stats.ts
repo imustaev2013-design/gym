@@ -1,4 +1,4 @@
-import { plan } from './logic'
+import { dateStr, plan, shiftDate } from './logic'
 import type { ExLog, PlanExercise, Workout } from './types'
 
 export const exById = (exId: string): PlanExercise | undefined =>
@@ -90,4 +90,32 @@ export function fmtDate(date: string, long = false): string {
     'ru-RU',
     long ? { weekday: 'short', day: 'numeric', month: 'long' } : { day: 'numeric', month: 'short' },
   )
+}
+
+/** Рекорды за последние 30 дней: новые максимумы расчётного 1RM и внесённые рекорды на раз (первая запись рекордом не считается) */
+export function recordsLast30(
+  workouts: Workout[],
+  records: { exId: string; date: string; kg: number }[],
+  body: BodyEntry[],
+): number {
+  const cutoff = shiftDate(dateStr(), -30)
+  let n = 0
+  for (const ex of plan.days.flatMap((d) => d.exercises).filter((e, i, a) => a.findIndex((x) => x.id === e.id) === i)) {
+    let best = 0
+    let first = true
+    for (const p of exerciseHistory(ex.id, workouts, body)) {
+      if (p.oneRM == null) continue
+      if (!first && p.oneRM > best && p.date >= cutoff) n++
+      best = Math.max(best, p.oneRM)
+      first = false
+    }
+    best = 0
+    first = true
+    for (const r of records.filter((r) => r.exId === ex.id).sort((a, b) => (a.date < b.date ? -1 : 1))) {
+      if (!first && r.kg > best && r.date >= cutoff) n++
+      best = Math.max(best, r.kg)
+      first = false
+    }
+  }
+  return n
 }

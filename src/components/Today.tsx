@@ -3,10 +3,30 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db'
 import { rate, useProfile } from '../standards'
 import Nudges from './Nudges'
+import Notes from './Notes'
 import type { PageId } from './Page'
 import { bodyOn, exerciseHistory, fmtKg, setOneRM } from '../stats'
-import { TAGS, buildDraft, dateStr, missedDays, yesterdayStr, dayById, durationLabel, haptic, lastTimeLine, parseInput, formatNum, typeLabel } from '../logic'
+import {
+  buildDraft,
+  dateStr,
+  dayById,
+  durationLabel,
+  findPrev,
+  formatNum,
+  haptic,
+  lastTimeLine,
+  missedDays,
+  parseInput,
+  plural,
+  progressHint,
+  yesterdayStr,
+} from '../logic'
 import type { ExLog, PlanExercise, SetLog, Workout } from '../types'
+
+const STATUS_WORD = { easy: 'легко', normal: 'норм', hard: 'тяжело' } as const
+const round2 = (n: number) => Math.round(n * 100) / 100
+
+type Edit = { ex: number; set: number; field: 'w' | 'r' }
 
 export default function Today({ dayId, workouts, onNav }: { dayId: string; workouts: Workout[]; onNav: (p: PageId) => void }) {
   const day = dayById(dayId)
@@ -69,10 +89,27 @@ export default function Today({ dayId, workouts, onNav }: { dayId: string; worko
     })
   }
 
+  // --- какое упражнение раскрыто ---
+  const [openIdx, setOpenIdx] = useState<number | null>(null)
+  const [edit, setEdit] = useState<Edit | null>(null)
+  const resolved = (e: ExLog) => e.skipped || !!e.status
+  const nextAfter = (i: number) => {
+    const ex = workout.exercises
+    for (let j = i + 1; j < ex.length; j++) if (!resolved(ex[j])) return j
+    for (let j = 0; j < i; j++) if (!resolved(ex[j])) return j
+    return -1
+  }
+  const auto = workout.exercises.findIndex((e) => !resolved(e))
+  const current = openIdx ?? auto
+  const advance = (i: number) => {
+    setOpenIdx(nextAfter(i))
+    setEdit(null)
+  }
+
   if (workout.finished) {
     const sets = workout.exercises.flatMap((e) => e.sets.filter((s) => s.done)).length
     return (
-      <main className="rest">
+      <div className="rest">
         <p className="rest-title">Тренировка завершена</p>
         <p className="muted">
           {day.id} · подходов: {sets}
@@ -82,260 +119,380 @@ export default function Today({ dayId, workouts, onNav }: { dayId: string; worko
           Открыть историю
         </button>
         <Nudges workouts={workouts} onNav={onNav} />
-        <button className="note-open" onClick={() => update((w) => (w.finished = false))}>
+        <button className="m-link" onClick={() => update((w) => (w.finished = false))}>
           Вернуться к тренировке
         </button>
-      </main>
+      </div>
     )
   }
 
   const anyDone = workout.exercises.some((e) => e.sets.some((s) => s.done))
 
   return (
-    <main className="list">
+    <>
       {missedDays(workouts).some((m) => m.date === yesterdayStr() && m.dayId === dayId) && (
-        <p className="meta carried">Вчера эта тренировка была пропущена, она перенесена на сегодня.</p>
+        <p className="m-note">Вчера эта тренировка была пропущена, она перенесена на сегодня.</p>
       )}
       {toast && (
         <div className="toast" onClick={() => setToast(null)}>
           {toast}
         </div>
       )}
-      {day.exercises.map((ex, i) => (
-        <Exercise
-          key={ex.id}
-          ex={ex}
-          log={workout.exercises[i]}
-          last={lastTimeLine(ex, workouts, stored?.id)}
-          onChange={(fn) => updateEx(i, fn)}
-        />
-      ))}
-      <Notes
-        title="Тренировка"
-        tags={workout.tags}
-        comment={workout.comment}
-        extra={durationLabel(workout) ? `Время: ${durationLabel(workout)}` : undefined}
-        onTags={(t) => update((w) => (w.tags = t))}
-        onComment={(c) => update((w) => (w.comment = c))}
-        alwaysOpen
-      />
-      <Nudges workouts={workouts} onNav={onNav} />
-      <button
-        className="btn finish"
-        onClick={() => {
-          if (!anyDone) {
-            alert('Нет отмеченных подходов. Поставь галочки у выполненных подходов.')
-            return
-          }
-          haptic()
-          update((w) => (w.finished = true))
-        }}
-      >
-        Завершить тренировку
-      </button>
-    </main>
-  )
-}
 
-function Exercise({
-  ex,
-  log,
-  last,
-  onChange,
-}: {
-  ex: PlanExercise
-  log: ExLog
-  last: string | null
-  onChange: (fn: (e: ExLog) => void) => void
-}) {
-  const unit = ex.type === 'bodyweight' ? 'доп. кг' : 'кг'
-  const meta = [typeLabel[ex.type], ex.perLeg ? 'на ногу' : null, `${ex.sets} × ${ex.reps[0]}–${ex.reps[1]}`]
-    .filter(Boolean)
-    .join(' · ')
-
-  return (
-    <section className={'ex' + (log.skipped ? ' skipped' : '')}>
-      <div className="ex-head">
-        <div>
-          <h2>
-            {ex.name}
-            {ex.variant && <span className="variant"> ({ex.variant})</span>}
-          </h2>
-          <p className="meta">{meta}</p>
-          {last && <p className="meta">В прошлый раз: {last}</p>}
-        </div>
-        <button className="skip" onClick={() => onChange((e) => (e.skipped = !e.skipped))}>
-          {log.skipped ? 'Вернуть' : 'Пропустить'}
-        </button>
-      </div>
-
-      {!log.skipped && (
-        <div className="sets">
-          {log.sets.map((s, si) => (
-            <SetRow
-              key={si}
-              n={si + 1}
-              unit={unit}
-              set={s}
-              onChange={(fn) => onChange((e) => fn(e.sets[si]))}
-              onWeight={(v) =>
-                onChange((e) => {
-                  // вес переносится на следующие незавершённые подходы
-                  const old = e.sets[si].weight
-                  e.sets[si].weight = v
-                  for (let k = si + 1; k < e.sets.length; k++) {
-                    const s = e.sets[k]
-                    if (!s.done && (s.weight == null || s.weight === old)) s.weight = v
-                  }
-                })
-              }
+      <div className="m-list">
+        {day.exercises.map((ex, i) => {
+          const log = workout.exercises[i]
+          return i === current ? (
+            <Current
+              key={ex.id + i}
+              ex={ex}
+              log={log}
+              idx={i}
+              hint={progressHint(ex, findPrev(ex, workouts))}
+              last={lastTimeLine(ex, workouts, stored?.id)}
+              edit={edit?.ex === i ? edit : null}
+              setEdit={setEdit}
+              onChange={(fn) => updateEx(i, fn)}
+              onResolved={() => advance(i)}
             />
-          ))}
-        </div>
-      )}
-
-      {!log.skipped && (
-        <div className="status">
-          {(
-            [
-              ['easy', 'Легко'],
-              ['normal', 'Норм'],
-              ['hard', 'Тяжело'],
-            ] as const
-          ).map(([k, label]) => (
-            <button
-              key={k}
-              className={log.status === k ? 'on' : ''}
-              onClick={() => onChange((e) => (e.status = e.status === k ? undefined : k))}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <Notes
-        title="Заметка"
-        tags={log.tags}
-        comment={log.comment}
-        onTags={(t) => onChange((e) => (e.tags = t))}
-        onComment={(c) => onChange((e) => (e.comment = c))}
-      />
-    </section>
-  )
-}
-
-function Notes({
-  title,
-  tags,
-  comment,
-  extra,
-  alwaysOpen,
-  onTags,
-  onComment,
-}: {
-  title: string
-  tags?: string[]
-  comment?: string
-  extra?: string
-  alwaysOpen?: boolean
-  onTags: (t: string[]) => void
-  onComment: (c: string) => void
-}) {
-  const filled = !!(tags?.length || comment)
-  const [open, setOpen] = useState(!!alwaysOpen || filled)
-  if (!open)
-    return (
-      <button className="note-open" onClick={() => setOpen(true)}>
-        + {title.toLowerCase()}
-      </button>
-    )
-  return (
-    <div className={'notes' + (alwaysOpen ? ' wk' : '')}>
-      {alwaysOpen && <div className="notes-title">{title}</div>}
-      {extra && <div className="meta">{extra}</div>}
-      <div className="chips">
-        {TAGS.map((t) => {
-          const on = !!tags?.includes(t)
-          return (
-            <button key={t} className={on ? 'on' : ''} onClick={() => onTags(on ? tags!.filter((x) => x !== t) : [...(tags ?? []), t])}>
-              {t}
-            </button>
+          ) : (
+            <Collapsed
+              key={ex.id + i}
+              ex={ex}
+              log={log}
+              onOpen={() => {
+                setOpenIdx(i)
+                setEdit(null)
+              }}
+            />
           )
         })}
       </div>
-      <input
-        className="comment"
-        placeholder="Комментарий"
-        defaultValue={comment ?? ''}
-        onBlur={(e) => e.target.value !== (comment ?? '') && onComment(e.target.value)}
-      />
+
+      <div className="m-foot">
+        <Notes
+          title="Тренировка"
+          tags={workout.tags}
+          comment={workout.comment}
+          extra={durationLabel(workout) ? `Время: ${durationLabel(workout)}` : undefined}
+          onTags={(t) => update((w) => (w.tags = t))}
+          onComment={(c) => update((w) => (w.comment = c))}
+          alwaysOpen
+        />
+        <Nudges workouts={workouts} onNav={onNav} />
+        <button
+          className="btn finish"
+          onClick={() => {
+            if (!anyDone) {
+              alert('Нет отмеченных подходов. Поставь галочки у выполненных подходов.')
+              return
+            }
+            haptic()
+            update((w) => (w.finished = true))
+          }}
+        >
+          Завершить тренировку
+        </button>
+      </div>
+    </>
+  )
+}
+
+/** «52,5 кг × 5» / «свой вес × 6» / «+5 кг × 6» */
+function weightText(ex: PlanExercise, w: number | null): string {
+  if (ex.type === 'bodyweight') return !w ? 'свой вес' : `+${formatNum(w)} кг`
+  return w == null ? '— кг' : `${formatNum(w)} кг`
+}
+
+function Collapsed({ ex, log, onOpen }: { ex: PlanExercise; log: ExLog; onOpen: () => void }) {
+  const first = log.sets[0]
+  const n = log.sets.length
+  return (
+    <button className={'m-coll' + (log.skipped ? ' skipped' : '')} onClick={onOpen}>
+      <span>
+        <span className="t">{ex.name}</span>
+        <span className="s">
+          {log.skipped
+            ? 'пропущено'
+            : `${weightText(ex, first.weight)} × ${first.reps ?? '—'} · ${n} ${plural(n, 'подход', 'подхода', 'подходов')}${log.status ? ` · ${STATUS_WORD[log.status]}` : ''}`}
+        </span>
+      </span>
+      {!log.skipped && (
+        <span className="m-dots">
+          {log.sets.map((s, i) => (
+            <span key={i} className={'m-dot' + (s.done ? ' on' : '')} />
+          ))}
+        </span>
+      )}
+    </button>
+  )
+}
+
+function Current({
+  ex,
+  log,
+  idx,
+  hint,
+  last,
+  edit,
+  setEdit,
+  onChange,
+  onResolved,
+}: {
+  ex: PlanExercise
+  log: ExLog
+  idx: number
+  hint: string | null
+  last: string | null
+  edit: Edit | null
+  setEdit: (e: Edit | null) => void
+  onChange: (fn: (e: ExLog) => void) => void
+  onResolved: () => void
+}) {
+  const doneCount = log.sets.filter((s) => s.done).length
+  const allDone = log.sets.length > 0 && doneCount === log.sets.length
+
+  const setWeight = (si: number, v: number | null) =>
+    onChange((e) => {
+      // вес переносится на следующие незавершённые подходы
+      const old = e.sets[si].weight
+      e.sets[si].weight = v
+      for (let k = si + 1; k < e.sets.length; k++) {
+        const s = e.sets[k]
+        if (!s.done && (s.weight == null || s.weight === old)) s.weight = v
+      }
+    })
+  const setReps = (si: number, v: number | null) => onChange((e) => (e.sets[si].reps = v))
+
+  const toggle = (si: number) => {
+    const s = log.sets[si]
+    if (!s.done && s.weight == null) {
+      setEdit({ ex: idx, set: si, field: 'w' }) // вес ещё не введён — сначала вводим вес
+      return
+    }
+    haptic()
+    onChange((e) => {
+      const x = e.sets[si]
+      x.done = !x.done
+      x.doneAt = x.done ? Date.now() : undefined
+    })
+    setEdit(null)
+  }
+
+  if (log.skipped) {
+    return (
+      <div className="m-cur">
+        <div className="m-head">
+          <span className="m-name skipped">{ex.name}</span>
+          <span className="m-count">пропущено</span>
+        </div>
+        <div className="m-add">
+          <button onClick={() => onChange((e) => (e.skipped = false))}>Вернуть упражнение</button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="m-cur">
+      <div className="m-head">
+        <span className="m-name">
+          {ex.name}
+          {ex.variant && <span className="m-variant"> ({ex.variant})</span>}
+        </span>
+        <span className="m-count">
+          {doneCount} / {log.sets.length}
+          {ex.perLeg ? ' · на ногу' : ''}
+        </span>
+      </div>
+      {(hint ?? (last ? `В прошлый раз: ${last}` : null)) && <div className="m-hint">{hint ?? `В прошлый раз: ${last}`}</div>}
+
+      <div className="m-sets">
+        {log.sets.map((s, si) => {
+          const editing = edit?.set === si
+          const openEdit = (field: 'w' | 'r') => setEdit({ ex: idx, set: si, field })
+          const bw = ex.type === 'bodyweight'
+          return (
+            <div key={si} className={editing ? 'm-edit' : undefined}>
+              <div className={'m-set' + (s.done ? ' done' : '')}>
+                <span className="m-idx">{si + 1}</span>
+                {editing ? (
+                  <span className="m-label">Меняю подход</span>
+                ) : (
+                  <span className="m-val">
+                    <button onClick={() => openEdit('w')}>
+                      <span className={s.done ? '' : 'tap'}>
+                        {bw ? (s.weight ? `+${formatNum(s.weight)}` : 'свой вес') : s.weight == null ? '—' : formatNum(s.weight)}
+                      </span>
+                    </button>
+                    {(!bw || !!s.weight) && <small> кг</small>} ×{' '}
+                    <button onClick={() => openEdit('r')}>
+                      <span className={s.done ? '' : 'tap'}>{s.reps ?? '—'}</span>
+                    </button>
+                  </span>
+                )}
+                <button className={'m-check' + (s.done ? ' on' : '')} onClick={() => toggle(si)} aria-label={`Подход ${si + 1} выполнен`} aria-pressed={s.done}>
+                  {s.done && (
+                    <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="M4 10.5 8.2 14.5 16 6" stroke="var(--bg)" strokeWidth="2.2" fill="none" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+
+              {editing && (
+                <div className="m-steps">
+                  <Stepper
+                    active={edit!.field === 'w'}
+                    value={s.weight}
+                    unit={bw ? 'доп. кг' : 'кг'}
+                    step={ex.step}
+                    decimal
+                    onActivate={() => openEdit('w')}
+                    onChange={(v) => setWeight(si, v)}
+                    label="вес"
+                  />
+                  <Stepper
+                    active={edit!.field === 'r'}
+                    value={s.reps}
+                    unit="повт."
+                    step={1}
+                    onActivate={() => openEdit('r')}
+                    onChange={(v) => setReps(si, v)}
+                    label="повторы"
+                  />
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="m-add">
+        <button
+          onClick={() =>
+            onChange((e) => {
+              const p = e.sets.at(-1)
+              e.sets.push({ weight: p?.weight ?? null, reps: p?.reps ?? ex.reps[0], done: false })
+            })
+          }
+        >
+          + подход
+        </button>
+        <button
+          className="gray"
+          disabled={log.sets.length < 2 || log.sets.at(-1)!.done}
+          onClick={() => {
+            setEdit(null)
+            onChange((e) => {
+              if (e.sets.length > 1 && !e.sets.at(-1)!.done) e.sets.pop()
+            })
+          }}
+        >
+          − подход
+        </button>
+        <button
+          className="gray right"
+          onClick={() => {
+            onChange((e) => (e.skipped = true))
+            onResolved()
+          }}
+        >
+          Пропустить
+        </button>
+      </div>
+
+      {allDone && (
+        <>
+          <div className="status">
+            {(
+              [
+                ['easy', 'Легко'],
+                ['normal', 'Норм'],
+                ['hard', 'Тяжело'],
+              ] as const
+            ).map(([k, label]) => (
+              <button
+                key={k}
+                className={log.status === k ? 'on' : ''}
+                onClick={() => {
+                  const selecting = log.status !== k
+                  onChange((e) => (e.status = selecting ? k : undefined))
+                  if (selecting) onResolved()
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <Notes
+            title="Заметка"
+            tags={log.tags}
+            comment={log.comment}
+            onTags={(t) => onChange((e) => (e.tags = t))}
+            onComment={(c) => onChange((e) => (e.comment = c))}
+          />
+        </>
+      )}
     </div>
   )
 }
 
-function SetRow({
-  n,
+function Stepper({
+  value,
   unit,
-  set,
+  step,
+  decimal,
+  active,
+  label,
+  onActivate,
   onChange,
-  onWeight,
 }: {
-  n: number
+  value: number | null
   unit: string
-  set: SetLog
-  onChange: (fn: (s: SetLog) => void) => void
-  onWeight: (v: number | null) => void
+  step: number
+  decimal?: boolean
+  active: boolean
+  label: string
+  onActivate: () => void
+  onChange: (v: number | null) => void
 }) {
-  const weightRef = useRef<HTMLInputElement>(null)
-  const toggle = () => {
-    if (!set.done && set.weight == null) {
-      // вес ещё не введён — сначала вводим вес
-      weightRef.current?.focus()
-      return
-    }
-    haptic()
-    onChange((s) => {
-      s.done = !s.done
-      s.doneAt = s.done ? Date.now() : undefined
-    })
+  const [typing, setTyping] = useState(false)
+  const change = (d: number) => {
+    onActivate()
+    onChange(Math.max(0, round2((value ?? 0) + d)))
   }
-
   return (
-    <div className={'set' + (set.done ? ' done' : '')}>
-      <span className="n">{n}</span>
-      <label className="field">
+    <div className={'m-step' + (active ? ' active' : '')}>
+      <button aria-label={`Минус ${label}`} onClick={() => change(-step)}>
+        −
+      </button>
+      {typing ? (
         <input
-          ref={weightRef}
-          inputMode="decimal"
-          placeholder="—"
-          key={'w' + set.weight}
-          defaultValue={set.weight == null ? '' : formatNum(set.weight)}
+          autoFocus
+          inputMode={decimal ? 'decimal' : 'numeric'}
+          defaultValue={value == null ? '' : formatNum(value)}
           onFocus={(e) => e.target.select()}
           onBlur={(e) => {
             const v = e.target.value.trim() === '' ? null : parseInput(e.target.value)
-            if (v !== set.weight) onWeight(v)
+            if (v !== value) onChange(v)
+            setTyping(false)
           }}
+          onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
         />
-        <small>{unit}</small>
-      </label>
-      <span className="x">×</span>
-      <label className="field">
-        <input
-          inputMode="numeric"
-          placeholder="—"
-          key={'r' + set.reps}
-          defaultValue={set.reps ?? ''}
-          onFocus={(e) => e.target.select()}
-          onBlur={(e) => {
-            const v = e.target.value.trim() === '' ? null : parseInput(e.target.value)
-            if (v !== set.reps) onChange((s) => (s.reps = v))
+      ) : (
+        <button
+          className="v"
+          onClick={() => {
+            onActivate()
+            setTyping(true)
           }}
-        />
-        <small>повт.</small>
-      </label>
-      <button className="check" onClick={toggle} aria-label="Выполнено" aria-pressed={set.done}>
-        {set.done ? '✓' : ''}
+        >
+          {value == null ? '—' : formatNum(value)} <small>{unit}</small>
+        </button>
+      )}
+      <button aria-label={`Плюс ${label}`} onClick={() => change(step)}>
+        +
       </button>
     </div>
   )
