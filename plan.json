@@ -1,0 +1,52 @@
+{
+  "cycle": ["A1", "B1", "A2", "B2"],
+  "restAfter": ["B1", "B2"],
+  "days": [
+    {
+      "id": "A1",
+      "title": "акцент на грудь",
+      "exercises": [
+        {"id": "bench", "name": "Жим штанги лёжа", "variant": "тяжёлый", "sets": 3, "reps": [5, 6], "type": "barbell", "step": 2.5},
+        {"id": "squat", "name": "Присед со штангой", "variant": "умеренный", "sets": 2, "reps": [5, 6], "type": "barbell", "step": 2.5},
+        {"id": "pullup", "name": "Подтягивания", "sets": 3, "reps": [6, 8], "type": "bodyweight", "step": 2.5},
+        {"id": "ohp_db", "name": "Жим гантелей сидя вверх", "sets": 2, "reps": [6, 8], "type": "dumbbell", "step": 1},
+        {"id": "triceps_rope", "name": "Трицепс с канатом", "sets": 2, "reps": [8, 12], "type": "block", "step": 2},
+        {"id": "biceps_bb", "name": "Бицепс со штангой", "sets": 2, "reps": [6, 10], "type": "barbell", "step": 2.5}
+      ]
+    },
+    {
+      "id": "B1",
+      "title": "классическая становая",
+      "exercises": [
+        {"id": "deadlift", "name": "Классическая становая тяга", "sets": 2, "reps": [4, 5], "type": "barbell", "step": 2.5},
+        {"id": "incline_bench", "name": "Жим штанги на наклонной скамье", "sets": 2, "reps": [6, 8], "type": "barbell", "step": 2.5},
+        {"id": "row_low", "name": "Тяга нижнего блока", "sets": 3, "reps": [6, 10], "type": "block", "step": 5},
+        {"id": "bulgarian", "name": "Болгарские приседания", "sets": 2, "reps": [6, 10], "type": "dumbbell", "step": 1, "perLeg": true},
+        {"id": "lateral_raise", "name": "Махи гантелями в стороны", "sets": 2, "reps": [10, 15], "type": "dumbbell", "step": 1}
+      ]
+    },
+    {
+      "id": "A2",
+      "title": "акцент на ноги",
+      "exercises": [
+        {"id": "squat", "name": "Присед со штангой", "variant": "тяжёлый", "sets": 3, "reps": [5, 6], "type": "barbell", "step": 2.5},
+        {"id": "db_bench", "name": "Жим гантелей лёжа", "sets": 2, "reps": [6, 10], "type": "dumbbell", "step": 1},
+        {"id": "pullup", "name": "Подтягивания", "sets": 3, "reps": [6, 8], "type": "bodyweight", "step": 2.5},
+        {"id": "ohp_db", "name": "Жим гантелей сидя вверх", "sets": 2, "reps": [6, 8], "type": "dumbbell", "step": 1},
+        {"id": "triceps_rope", "name": "Трицепс с канатом", "sets": 2, "reps": [8, 12], "type": "block", "step": 2},
+        {"id": "biceps_bb", "name": "Бицепс со штангой", "sets": 2, "reps": [6, 10], "type": "barbell", "step": 2.5}
+      ]
+    },
+    {
+      "id": "B2",
+      "title": "румынская становая",
+      "exercises": [
+        {"id": "rdl", "name": "Румынская становая тяга", "sets": 2, "reps": [6, 8], "type": "barbell", "step": 2.5},
+        {"id": "incline_db", "name": "Жим гантелей на наклонной скамье", "sets": 2, "reps": [8, 10], "type": "dumbbell", "step": 1},
+        {"id": "row_low", "name": "Тяга нижнего блока", "sets": 3, "reps": [6, 10], "type": "block", "step": 5},
+        {"id": "bulgarian", "name": "Болгарские приседания", "sets": 2, "reps": [6, 10], "type": "dumbbell", "step": 1, "perLeg": true},
+        {"id": "lateral_raise", "name": "Махи гантелями в стороны", "sets": 2, "reps": [10, 15], "type": "dumbbell", "step": 1}
+      ]
+    }
+  ]
+}
